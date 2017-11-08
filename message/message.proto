@@ -1,0 +1,13 @@
+// 编译命令：protoc message.proto --go_out=.
+
+syntax = "proto3";
+
+message LoginReq {
+    string username = 1;
+    string password = 2;
+}
+
+message LoginResp {
+    int32 userid = 1;
+    string token = 2;
+}
