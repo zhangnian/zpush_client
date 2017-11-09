@@ -11,3 +11,11 @@ message LoginResp {
     int32 userid = 1;
     string token = 2;
 }
+
+message HBReq {
+    int32 userid = 1;
+}
+
+message HBResp {
+
+}
