@@ -8,7 +8,44 @@ import (
 	"net"
 	"time"
 	msg "zpush_client/message"
+	"net/http"
+	"io/ioutil"
+	"encoding/json"
+	"github.com/pkg/errors"
+	"math/rand"
 )
+
+func LoadBalancing(addrs []interface{}) string{
+	addrs_len := len(addrs)
+
+	idx := rand.Int31n(int32(addrs_len))
+	return addrs[idx].(string)
+}
+
+func getGatewayAddr() (string, error){
+	DIR_API := "http://localhost:8080/gateway"
+
+	resp, err := http.Get(DIR_API)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+
+	gatewayMap := make(map[string]interface{})
+
+	json.Unmarshal(body, &gatewayMap)
+
+	code := gatewayMap["code"].(float64)
+	if int(code) != 0{
+		return "", errors.New("获取Gateway地址失败")
+	}
+
+	addrs := gatewayMap["data"].([]interface{})
+	selected_addr := LoadBalancing(addrs)
+	return selected_addr, nil
+}
+
 
 func buildMsg(cmd int, b []byte) []byte{
 	buf := make([]byte, 2+4+len(b))
@@ -37,7 +74,11 @@ func mockLogin(username, password string) {
 
 	buf := buildMsg(1, b)
 
-	conn, err := net.Dial("tcp", "localhost:1001")
+	gatewayAddr, err := getGatewayAddr()
+	if err != nil{
+		log.Fatalln("get gateway addr failed")
+	}
+	conn, err := net.Dial("tcp", gatewayAddr)
 	if err != nil {
 		log.Fatalln("connect to gateway error")
 	}
